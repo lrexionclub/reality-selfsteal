@@ -78,10 +78,12 @@ jobs:
           chmod +x rs scripts/lint.sh
           bash scripts/lint.sh
 
-      - name: rs 在 Alpine 下可用
+      - name: rs 参数守卫（容器内是 root，改测参数校验）
         working-directory: /src
         run: |
           ./rs version
           ./rs --help > /dev/null
-          out=$(./rs install --domain a.b 2>&1 || true)
-          printf '%s' "$out" | grep -q 'root'
+          out=$(./rs install --network bogus --domain a.b 2>&1 || true)
+          printf '%s' "$out" | grep -q 'raw 或 xhttp'
+          out=$(./rs install --domain 'bad domain!' 2>&1 || true)
+          printf '%s' "$out" | grep -q '非法字符'
