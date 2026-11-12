@@ -69,6 +69,47 @@ done
 [ -x rs ] && pass "rs 可执行" || printf '  note rs 无 +x（chmod +x rs 即可）\n'
 
 printf '\n'
+
+head_ "7. 单文件模板渲染（rs 内嵌）"
+marker=$(grep -n '入口' rs | tail -1 | cut -d: -f1)
+if [ -n "${marker:-}" ]; then
+  head -n $((marker - 1)) rs > /tmp/rs.lib
+  tmpd=$(mktemp -d)
+  (
+    # shellcheck disable=SC1091
+    . /tmp/rs.lib
+    export DOMAIN=api.example.com TLS_PORT=8443 SITE_ROOT=/var/www/api.example.com
+    export ACME_WEBROOT=/var/www/acme LOG_DIR=/var/log/xray BIN=/usr/local/bin/xray
+    export CONF_FILE=/usr/local/etc/xray/config.json
+    export UUID=11111111-1111-1111-1111-111111111111 PRIV=PRIVATEKEY
+    export SHORTID=0123456789abcdef XPATH=/abcdef123456
+    export NETWORK=raw;   tpl_xray > "$tmpd/raw.json"
+    export NETWORK=xhttp; tpl_xray > "$tmpd/xhttp.json"
+    tpl_nginx "" "    http2 on;"   > "$tmpd/site-new.conf"
+    tpl_nginx " http2" "    # old" > "$tmpd/site-old.conf"
+  )
+  if grep -q '@[A-Z_]\+@' "$tmpd"/*.json "$tmpd"/*.conf 2>/dev/null; then
+    bad "模板占位符未替换干净"
+  else
+    pass "占位符全部替换"
+  fi
+  grep -q 'listen 127.0.0.1:8443 ssl;'       "$tmpd/site-new.conf" && pass "nginx >=1.25.1 分支" || bad "nginx >=1.25.1 分支"
+  grep -q 'listen 127.0.0.1:8443 ssl http2;' "$tmpd/site-old.conf" && pass "nginx <1.25.1 分支"  || bad "nginx <1.25.1 分支"
+  grep -q '"dest": "127.0.0.1:8443"'         "$tmpd/raw.json"      && pass "xray raw dest"      || bad "xray raw dest"
+  grep -q '"network": "xhttp"'               "$tmpd/xhttp.json"    && pass "xray xhttp network" || bad "xray xhttp network"
+  if grep -q 'xtls-rprx-vision' "$tmpd/raw.json" && ! grep -q 'xtls-rprx-vision' "$tmpd/xhttp.json"; then
+    pass "flow 只在 raw 出现"
+  else
+    bad "flow 与 network 不匹配"
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    jq -e . "$tmpd/raw.json"   >/dev/null && pass "raw.json 合法 JSON"   || bad "raw.json 非法"
+    jq -e . "$tmpd/xhttp.json" >/dev/null && pass "xhttp.json 合法 JSON" || bad "xhttp.json 非法"
+  fi
+  rm -rf "$tmpd" /tmp/rs.lib
+else
+  bad "找不到 rs 的入口标记行"
+fi
 if [ "$FAIL" -eq 0 ]; then
   printf '\033[32m全部通过\033[0m\n'
   exit 0
