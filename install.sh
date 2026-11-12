@@ -21,7 +21,7 @@ if [ -z "${BASH_VERSION:-}" ]; then
   exec bash "$0" "$@"
 fi
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 # 一行流（bash <(curl ...) 或 curl | bash）拿不到仓库里的 conf/ 模板，
 # 此时自动拉一份 tarball 到临时目录再重入。把下面的 slug 换成你自己的仓库。
@@ -363,7 +363,7 @@ step_firewall() {
 }
 
 write_info() {
-  local ip proto link sni fp
+  local ip proto link fp
   ip=$(public_ip)
   fp=chrome
   if [ "$NETWORK" = xhttp ]; then

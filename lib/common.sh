@@ -55,6 +55,7 @@ detect_os() {
     *)   NGINX_USER=www-data; NGINX_SITE_DIR=/etc/nginx/sites-available ;;
   esac
 
+  export NGINX_USER NGINX_SITE_DIR
   ok "发行版 ${OS_ID} ${OS_VER:-?} / 包管理 ${PKG} / init ${INIT}"
 }
 

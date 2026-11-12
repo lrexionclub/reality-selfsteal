@@ -6,7 +6,7 @@
 # =============================================================================
 set -uo pipefail
 
-cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)" || exit 1
+cd "$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)" || exit 1
 
 FAIL=0
 pass() { printf '\033[32m  ok  \033[0m %s\n' "$*"; }
@@ -14,13 +14,13 @@ bad()  { printf '\033[31m  FAIL\033[0m %s\n' "$*"; FAIL=$((FAIL + 1)); }
 head_() { printf '\n\033[36m== %s\033[0m\n' "$*"; }
 
 head_ "1. bash 语法（bash -n）"
-for f in install.sh uninstall.sh lib/common.sh rs; do
+for f in install.sh uninstall.sh lib/common.sh scripts/lint.sh rs; do
   if bash -n "$f" 2>/tmp/lint.err; then pass "$f"; else bad "$f"; sed 's/^/       /' /tmp/lint.err; fi
 done
 
 head_ "2. shellcheck"
 if command -v shellcheck >/dev/null 2>&1; then
-  for f in install.sh uninstall.sh lib/common.sh rs; do
+  for f in install.sh uninstall.sh lib/common.sh scripts/lint.sh rs; do
     if shellcheck -x -S warning -e SC1091,SC2317 "$f"; then pass "$f"; else bad "$f"; fi
   done
 else

@@ -649,6 +649,11 @@ do_install() {
   step_service
   step_fw
   save_info
+  # 交互模式下停一下再回菜单；-y 时直接返回
+  if [ "$ASSUME_YES" -eq 0 ] && [ -t 0 ]; then
+    printf '\n按回车返回菜单… '
+    read -r _ || true
+  fi
 }
 
 # ---------------------------------------------------------------- 子命令
@@ -781,7 +786,7 @@ menu() {
     printf '│ 0) 退出\n'
     printf '%s└──────────────────────────────────────%s\n' "$C_B" "$C_0"
     printf '选择: '
-    local c=""
+    local c="" yn=""
     read -r c || exit 0
     case "$c" in
       1|2)
