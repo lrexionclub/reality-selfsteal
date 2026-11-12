@@ -57,12 +57,138 @@ REALITY 本身不需要域名，它借谁的脸，外面看到的就是谁。以
 
 架构：`x86_64`、`aarch64`、`armv7l`、`i386`、`s390x`（与 Xray 官方 release 资产一一对应）。
 
-## 前置条件
+## 需要准备什么（以及为什么）
 
-1. 一台有公网 IPv4 的 VPS，root 权限
-2. 一个**正经注册**的域名（不建议用免费二级域名），A 记录指向这台机
-3. Cloudflare 只做解析，**关闭小云朵（灰云 / DNS only）**——REALITY 过不了 CDN，开了云朵解析出来的就不是你的 IP
-4. 80 和 443 没有被别的服务占用
+`rs` 装节点前会挨个问五个值，`install.sh` 用同名参数。前三个决定节点通不通，后两个决定你会不会被自己关在门外。
+
+| # | 项目 | 必填 | 默认 | 参数 | 落到哪里 |
+|---|---|---|---|---|---|
+| 1 | 域名 | 是 | 上次用过的 | `--domain` | Nginx `server_name`、证书 SAN、REALITY `serverNames`、客户端 `sni` |
+| 2 | 邮箱 | 否 | `admin@<域名>` | `--email` | acme.sh 的 ACME 账户 |
+| 3 | 回环端口 | 否 | `8443` | `--tls-port` | Nginx `listen 127.0.0.1:<port>` 与 Xray `dest`（两处成对） |
+| 4 | SSH 端口 | 否 | `22` | `--ssh-port` | 防火墙里唯一一条 SSH 放行规则 |
+| 5 | CF Token | 否 | 空（走 HTTP-01） | `--cf-token` | `acme.sh --dns dns_cf` 签发 |
+
+### 1. 域名（必填）
+
+要一条**已存在、指向这台机器公网 IPv4** 的 A 记录，配合一个完整 FQDN。
+
+```sh
+curl -4 -s https://api.ipify.org; echo    # 本机公网 IP
+dig +short api.example.com                # 必须与上一行一致
+curl -sI http://api.example.com/ | head -1 # 走 HTTP-01 时 80 要能到
+```
+
+| 合格 | `api.example.com`、`node.mydomain.net` |
+|---|---|
+| 不合格 | `1.2.3.4`（IP）、`http://api.example.com`（带协议）、`api.example.com:443`（带端口）、`api.example.com/`（带路径） |
+
+脚本把它写进四处：
+
+```nginx
+server_name api.example.com;
+```
+
+```json
+"serverNames": [ "api.example.com" ],
+"dest": "127.0.0.1:8443"
+```
+
+```
+vless://<UUID>@<IP>:443?...#api.example.com   中的 sni=api.example.com
+```
+
+**为什么必须是自己的真域名**：REALITY 的伪装原则是「外面看到的脸 = dest 的脸」。探测者拿这个 SNI 连 443，Xray 判定不是自己人，就把连接原样甩给 Nginx，他收到的证书写着 `api.example.com`，DNS 查这个域名正好指向这台 IP，证书也确实是这台机签的，三样对齐。换成借大站证书挂在机房 IP 上的搭法，证书写着微软却指向搬瓦工，地址与身份错位，本身就是特征。
+
+Cloudflare 那一侧只做解析，**云朵必须灰（DNS only）**：橙云会让域名解析出 CF 的 IP，而客户端连的是你的真实 IP，对齐关系当场断掉。
+
+### 2. 邮箱（可省）
+
+一个能收信的地址即可，不必与域名同域。脚本只做一件事：
+
+```sh
+curl -fsS https://get.acme.sh | sh -s email="$EMAIL"
+```
+
+acme.sh 拿它向 Let's Encrypt 注册 ACME 账户，写进 `/root/.acme.sh/account.conf`。它不参与签名、不进节点配置。证书即将到期且自动续签连续失败、或证书被吊销时，CA 会往这个地址发通知。默认值 `admin@<域名>` 只是让这一栏不为空值。
+
+### 3. 回环端口（默认 8443）
+
+Nginx 从这个端口接收 Xray 回落过来的流量，所以它要**只绑回环**、且**不与 443 冲突**。
+
+```sh
+ss -lntp | grep 8443        # 有输出就换一个，例如 9443
+```
+
+两处必须一致：
+
+```nginx
+listen 127.0.0.1:8443 ssl;   # 127.0.0.1 前缀 = 外部扫不到
+```
+
+```json
+"dest": "127.0.0.1:8443"
+```
+
+**为什么要挪到回环**：443 得让给 Xray（真实 HTTPS 站点都在 443，Reality 站在别的端口上本身就异常）；绑 `0.0.0.0:8443` 的话，别人扫端口会在 8443 上发现一个和你域名一模一样的站点，等于在地上留了第二串脚印。
+
+### 4. SSH 端口（默认 22）
+
+你当前 sshd 正在监听的端口。脚本只把它写进防火墙放行，**不动 `sshd_config`、不重启 sshd**。
+
+```sh
+ss -lntp | grep sshd        # 实际监听端口
+```
+
+```sh
+# Alpine / nftables
+tcp dport { 22, 80, 443 } accept
+# Debian / Ubuntu / ufw
+ufw allow 22/tcp
+```
+
+**为什么必须问**：最后一步是默认拒绝入站（nftables `policy drop` / `ufw default deny incoming`）。写死 22 而你的 sshd 在 2222，规则一生效，当前会话立刻冻住，重连被拒，只能从云厂商控制台进 VNC 救。云厂商安全组是另一层，那边也要放行同一个端口。
+
+### 5. CF Token（可省，留空走 HTTP-01）
+
+Cloudflare **API Token**，不是 Global API Key。创建路径：Dashboard → My Profile → API Tokens → Create Token → 模板 *Edit zone DNS* → 权限 `Zone:Read` + `DNS:Edit` → Zone Resources 指定那一个域名。
+
+脚本用它跑 DNS-01：
+
+```sh
+export CF_Token="$CF_TOKEN"
+acme.sh --issue --dns dns_cf -d "$DOMAIN" -k ec-256 --force
+```
+
+acme.sh 往你的 zone 写一条 `_acme-challenge.<域名>` TXT 完成校验，签完删掉；Token 被存进 `account.conf`（600）供三个月后自动续签使用。
+
+| 场景 | 留空（HTTP-01） | 填 Token（DNS-01） |
+|---|---|---|
+| 80 空着、域名已解析 | 能签 | 能签 |
+| 80 被占用 / 云厂商封 80 | 签不下来 | 能签 |
+| 域名刚买、解析未生效 | 失败 | 能签 |
+| 泛域名 `*.example.com` | 不行 | 能签 |
+
+### 五个值填完长这样
+
+```
+域名      api.example.com
+邮箱      me@gmail.com
+回环端口  8443
+SSH 端口  2222
+CF Token  （留空，回车）
+```
+
+落盘结果：
+
+```
+/etc/nginx/http.d/api.example.com.conf        Alpine
+/etc/nginx/sites-available/api.example.com.conf  Debian / Ubuntu
+/etc/nginx/ssl/api.example.com/{fullchain,privkey}.pem
+/usr/local/etc/xray/config.json
+/root/.acme.sh/account.conf
+/root/reality-selfsteal.info
+```
 
 ## 快速开始
 
@@ -282,27 +408,6 @@ bash uninstall.sh --domain api.example.com --all
 # 连 nginx / ufw / nftables 一起卸
 bash uninstall.sh --domain api.example.com --purge
 ```
-
-## 发布到自己的 GitHub
-
-仓库里所有 `lrexionclub` 都是占位符，一次替换完再推：
-
-```sh
-# 1. 替换 GitHub 用户名占位符
-grep -rl 'lrexionclub' . | xargs sed -i 's|lrexionclub|your-gh-name|g'
-
-# 2. 替换 LICENSE 里的作者名
-sed -i 's|lrexionclub|Your Name|g' LICENSE
-
-# 3. 推上去
-git init -b main
-git add -A
-git commit -m "feat: REALITY self-steal installer for Alpine/Debian/Ubuntu/RHEL"
-git remote add origin git@github.com:your-gh-name/reality-selfsteal.git
-git push -u origin main
-```
-
-CI 在每次 push 跑 `bash -n`、`shellcheck`、模板占位符检查与 `jq` JSON 校验。
 
 ## 声明
 
