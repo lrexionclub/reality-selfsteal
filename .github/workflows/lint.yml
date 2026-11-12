@@ -1,3 +1,7 @@
+# 这是 .github/workflows/lint.yml 的正式内容。
+# 因为推送用的 OAuth token 缺 workflow 权限，无法由脚本直接写入 .github/workflows/，
+# 所以正本放在这里：网页上打开 https://github.com/lrexionclub/reality-selfsteal/blob/main/ci/lint.yml
+# 点 Raw 全选复制，粘进 .github/workflows/lint.yml 覆盖后提交即可。
 name: lint
 
 on:
