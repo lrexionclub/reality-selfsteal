@@ -1,0 +1,65 @@
+{
+  "log": {
+    "loglevel": "warning",
+    "access": "/var/log/xray/access.log",
+    "error": "/var/log/xray/error.log"
+  },
+  "inbounds": [
+    {
+      "tag": "vless-reality-443",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "@UUID@",
+            "flow": "xtls-rprx-vision",
+            "email": "user1@@DOMAIN@"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "raw",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "127.0.0.1:@TLS_PORT@",
+          "xver": 0,
+          "serverNames": [ "@DOMAIN@" ],
+          "privateKey": "@PRIVKEY@",
+          "shortIds": [ "@SHORTID@", "" ]
+        },
+        "sockopt": {
+          "tcpFastOpen": true,
+          "tcpNoDelay": true,
+          "tcpcongestion": "bbr"
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [ "http", "tls", "quic" ],
+        "routeOnly": true
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "direct",
+      "protocol": "freedom",
+      "settings": { "domainStrategy": "UseIP" }
+    },
+    {
+      "tag": "block",
+      "protocol": "blackhole"
+    }
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      { "type": "field", "ip": [ "geoip:private" ], "outboundTag": "block" },
+      { "type": "field", "protocol": [ "bittorrent" ], "outboundTag": "block" }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+# OpenRC 服务脚本（Alpine 等无 systemd 的系统）
+name="xray"
+description="Xray Service (reality-selfsteal)"
+
+command="/usr/local/bin/xray"
+command_args="run -config /usr/local/etc/xray/config.json"
+command_background=true
+# 443 是特权端口。OpenRC 的 openrc-run 不做 capabilities 提升，
+# 因此这里以 root 运行（与多数 Xray 一键脚本一致）。
+pidfile="/run/${RC_SVCNAME}.pid"
+
+output_log="/var/log/xray/xray.out.log"
+error_log="/var/log/xray/xray.err.log"
+
+depend() {
+    need net
+    after nginx
+    use dns
+}
+
+start_pre() {
+    checkpath --directory --mode 0755 /var/log/xray
+    checkpath --directory --mode 0755 /run
+}

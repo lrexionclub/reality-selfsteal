@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+*.sh    text eol=lf
+rs      text eol=lf
+*.tmpl  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+LICENSE text eol=lf
+
+# OpenRC 脚本必须 LF，否则 /sbin/openrc-run 解析失败
+conf/openrc/xray text eol=lf

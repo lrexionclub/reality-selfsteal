@@ -1,0 +1,17 @@
+# 本地生成物
+*.info
+*.log
+*.zip
+.env
+.env.*
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 测试用的临时目录
+tmp/
+out/

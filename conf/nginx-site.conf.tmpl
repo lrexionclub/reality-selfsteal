@@ -1,0 +1,44 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name @DOMAIN@;
+
+    location /.well-known/acme-challenge/ {
+        root @ACME_WEBROOT@;
+    }
+
+    location / {
+        # 只按 80 判断跳转，绝不按「端口 != 443」判断
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    # 关键一行：127.0.0.1: 前缀 = 只有本机 Xray 能连，外部扫 @TLS_PORT@ 扫不到东西
+    listen 127.0.0.1:@TLS_PORT@ ssl@LISTEN_HTTP2@;
+@HTTP2_ON@
+    server_name @DOMAIN@;
+
+    ssl_certificate     @SSL_DIR@/fullchain.pem;
+    ssl_certificate_key @SSL_DIR@/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    server_tokens off;
+
+    root @SITE_ROOT@;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location /.well-known/acme-challenge/ {
+        root @ACME_WEBROOT@;
+    }
+}
