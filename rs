@@ -9,8 +9,8 @@
 #  架构：x86_64 / aarch64 / armv7l / i386 / s390x
 #
 #  单行安装：
-#  (curl -LfsS https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/rs \
-#     -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/rs \
+#  (curl -LfsS https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
+#     -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
 #     -O /usr/local/bin/rs) && chmod +x /usr/local/bin/rs && rs
 #
 #  子命令：
@@ -39,7 +39,7 @@ set -uo pipefail
 
 # ---------------------------------------------------------------- 常量
 RS_VERSION="1.0.0"
-REPO_SLUG="${RS_REPO_SLUG:-liujihaodeku/reality-selfsteal}"
+REPO_SLUG="${RS_REPO_SLUG:-lrexionclub/reality-selfsteal}"
 RAW_BASE="https://raw.githubusercontent.com/${REPO_SLUG}/main"
 FALLBACK_XRAY="v26.11.9"
 
@@ -832,8 +832,8 @@ install 选项：
   -y, --yes              无人值守
 
 单行安装：
-  (curl -LfsS https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/rs \
-     -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/rs \
+  (curl -LfsS https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
+     -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
      -O /usr/local/bin/rs) && chmod +x /usr/local/bin/rs && rs
 USAGE
 }

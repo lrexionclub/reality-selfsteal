@@ -3,7 +3,7 @@
 > 纯手写 **VLESS + REALITY「偷自己」**：`dest` 指向本机 Nginx，域名、证书、站点全在同一台机器上。
 > 不要宝塔，不要 3x-ui，不要 aaPanel / 1Panel。三条命令装完。
 
-[![lint](https://github.com/liujihaodeku/reality-selfsteal/actions/workflows/lint.yml/badge.svg)](https://github.com/liujihaodeku/reality-selfsteal/actions/workflows/lint.yml)
+[![lint](https://github.com/lrexionclub/reality-selfsteal/actions/workflows/lint.yml/badge.svg)](https://github.com/lrexionclub/reality-selfsteal/actions/workflows/lint.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Alpine%20%7C%20Debian%20%7C%20Ubuntu%20%7C%20RHEL-informational)](#支持矩阵)
 
@@ -70,7 +70,7 @@ REALITY 本身不需要域名，它借谁的脸，外面看到的就是谁。以
 
 ```sh
 apk add --no-cache bash git curl
-git clone https://github.com/liujihaodeku/reality-selfsteal.git
+git clone https://github.com/lrexionclub/reality-selfsteal.git
 cd reality-selfsteal
 bash install.sh --domain api.example.com --email you@mail.com
 ```
@@ -79,7 +79,7 @@ bash install.sh --domain api.example.com --email you@mail.com
 
 ```sh
 apt update && apt install -y git curl
-git clone https://github.com/liujihaodeku/reality-selfsteal.git
+git clone https://github.com/lrexionclub/reality-selfsteal.git
 cd reality-selfsteal
 bash install.sh --domain api.example.com --email you@mail.com
 ```
@@ -87,8 +87,8 @@ bash install.sh --domain api.example.com --email you@mail.com
 ### 单文件一键（推荐：`rs`）
 
 ```sh
-(curl -LfsS https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/rs \
-   -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/rs \
+(curl -LfsS https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
+   -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
    -O /usr/local/bin/rs) && chmod +x /usr/local/bin/rs && rs
 ```
 
@@ -109,7 +109,7 @@ bash install.sh --domain api.example.com --email you@mail.com
 ### 一行流（多文件版 install.sh）
 
 ```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/liujihaodeku/reality-selfsteal/main/install.sh) \
+bash <(curl -fsSL https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/install.sh) \
   --domain api.example.com --email you@mail.com
 ```
 
@@ -285,14 +285,14 @@ bash uninstall.sh --domain api.example.com --purge
 
 ## 发布到自己的 GitHub
 
-仓库里所有 `liujihaodeku` 都是占位符，一次替换完再推：
+仓库里所有 `lrexionclub` 都是占位符，一次替换完再推：
 
 ```sh
 # 1. 替换 GitHub 用户名占位符
-grep -rl 'liujihaodeku' . | xargs sed -i 's|liujihaodeku|your-gh-name|g'
+grep -rl 'lrexionclub' . | xargs sed -i 's|lrexionclub|your-gh-name|g'
 
 # 2. 替换 LICENSE 里的作者名
-sed -i 's|liujihaodeku|Your Name|g' LICENSE
+sed -i 's|lrexionclub|Your Name|g' LICENSE
 
 # 3. 推上去
 git init -b main

@@ -25,7 +25,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 # 一行流（bash <(curl ...) 或 curl | bash）拿不到仓库里的 conf/ 模板，
 # 此时自动拉一份 tarball 到临时目录再重入。把下面的 slug 换成你自己的仓库。
-REPO_SLUG="${XDD_REPO_SLUG:-liujihaodeku/reality-selfsteal}"
+REPO_SLUG="${XDD_REPO_SLUG:-lrexionclub/reality-selfsteal}"
 if [ ! -f "${SCRIPT_DIR}/conf/nginx-site.conf.tmpl" ]; then
   _tmp=$(mktemp -d)
   printf '[xdd] 本地无 conf/ 模板，尝试拉取 %s 源码包\n' "$REPO_SLUG" >&2
