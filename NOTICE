@@ -1,0 +1,23 @@
+# NOTICE
+
+本仓库包含两部分内容：
+
+## 1. 本项目自有实现（MIT，见 LICENSE）
+
+- REALITY「偷自己」结构：Nginx 回落 `127.0.0.1:8443`、Xray 独占 `443`、`dest` 指向本机真站点。
+- Xray 配置渲染（raw + Vision / xhttp + REALITY）、多客户端、密钥轮换、内核锁定。
+- 六段诊断、备份恢复、订阅与 Clash 配置导出。
+- `install.sh` / `lib/common.sh` / `conf/` 多文件版安装器。
+
+## 2. 参照改写的上游
+
+- 项目：0xdabiaoge/singbox-lite
+- 地址：https://github.com/0xdabiaoge/singbox-lite
+- 改写范围：主菜单分类与编号式交互、状态文件组织、导出（链接清单 / 订阅 / clash.yaml）与诊断的划分方式、多发行版适配思路。
+- 上游当前未附带 LICENSE 文件；上游代码的再分发与商用请先联系其作者。
+- 本仓库不包含上游的 `singbox.sh` / `advanced_relay.sh` / `parser.sh` / `xray_manager.sh` 源码，仅参照其结构自行实现。
+
+## 3. 第三方组件
+
+- XTLS/Xray-core（MPL-2.0）：运行时二进制由官方 release 下载，不随本仓库分发。
+- acmesh-official/acme.sh：运行时由官方安装脚本获取，不随本仓库分发。

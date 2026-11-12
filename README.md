@@ -35,16 +35,20 @@ REALITY 本身不需要域名，它借谁的脸，外面看到的就是谁。以
                  └─────────────────────────────────────────────┘
 ```
 
-## 特性
+## 主要能力
 
-- **零面板**：不引入任何 Web 控制台，攻击面只有 22 / 80 / 443
-- **跨发行版**：Alpine（`apk` + OpenRC）、Debian / Ubuntu（`apt` + systemd）、RHEL 系（`dnf` + systemd）
-- **443 只给 Xray**：Nginx 退到 `127.0.0.1:8443`，外部扫这个端口什么都扫不到
-- **两种传输**：`raw`（VLESS + Vision，默认）与 `xhttp`（XHTTP + REALITY），一条参数切换
-- **证书自动化**：acme.sh，支持 HTTP-01（webroot）与 Cloudflare DNS-01（`--cf-token`）
-- **防火墙自适应**：Alpine 用 nftables，Debian/Ubuntu 用 ufw，RHEL 用 firewalld
-- **幂等**：重复执行只覆盖配置，不重复下载二进制
-- **可卸载**：`uninstall.sh` 分级清理，不动无关服务
+- **零面板**：不引入 Web 控制台，对外只有 22 / 80 / 443。
+- **单文件 `rs`**：23 项菜单，安装、多客户端、订阅导出、备份、诊断、内核锁定、卸载都在一个文件里。
+- **多客户端**：一个入站挂多个 UUID，增删即时重载，链接与订阅自动刷新。
+- **订阅导出**：`links.txt`（明文）、`sub.txt`（base64 订阅）、`clash.yaml`（Mihomo `reality-opts`）。
+- **两种传输**：`raw`（VLESS + Vision，默认）与 `xhttp`（XHTTP + REALITY），切换时自动同步各客户端 `flow`。
+- **三种 init**：Alpine `apk` + OpenRC、Debian/Ubuntu `apt` + systemd、RHEL 系 `dnf` + systemd。
+- **防火墙自适应**：Alpine 写 nftables 规则集，Debian/Ubuntu 走 ufw，RHEL 走 firewalld。
+- **证书自动化**：acme.sh，HTTP-01（webroot）或 Cloudflare DNS-01（`--cf-token`），到期前自动跳过重复签发。
+- **内核治理**：最新版 / 指定版本 / 版本锁定（`version.lock`），升级前先 `run -test`，失败不重启。
+- **备份恢复**：一条命令打包配置、状态、证书与 service 文件，恢复后自动重载。
+- **诊断**：DNS 对齐、端口归属、本机回落、外部 443 真证书、证书余期、配置与服务状态，一次全查。
+- **幂等**：重复执行只覆盖配置，不重复下载二进制。
 
 ## 支持矩阵
 
@@ -218,19 +222,32 @@ bash install.sh --domain api.example.com --email you@mail.com
    -O /usr/local/bin/rs) && chmod +x /usr/local/bin/rs && rs
 ```
 
-`rs` 是自包含单文件：五套模板（Nginx vhost、Xray raw、Xray xhttp、systemd unit、OpenRC 脚本）
-全部内嵌在脚本里，不依赖 `conf/` 目录。装完直接再敲 `rs` 就是菜单。
+`rs` 是自包含单文件：Nginx vhost、Xray（raw / xhttp 两套）、systemd unit、OpenRC 脚本
+全部内嵌，不依赖 `conf/` 目录。
+
+以后直接运行：
+
+```sh
+rs
+```
+
+首次进入会自检依赖与状态目录，之后每次打开都是同一个菜单。
 
 | 子命令 | 作用 |
 |---|---|
-| `rs` | 交互菜单（安装 / 信息 / 自检 / 升级 / 卸载 / 自更新） |
+| `rs` | 交互菜单（23 项） |
 | `rs install --domain a.example.com --email you@mail.com` | 直接安装，RAW + Vision |
 | `rs install --domain a.example.com --email you@mail.com --network xhttp` | 直接安装，XHTTP |
-| `rs info` | 打印凭据与客户端链接 |
-| `rs check` | 端口归属 / 回落链路 / 证书 / 服务 六项自检 |
+| `rs add-client --email user2` | 追加客户端并打印链接 |
+| `rs info` | 节点信息 + 全部客户端链接 |
+| `rs export` | 导出 `links.txt` / `sub.txt` / `clash.yaml` |
+| `rs check` | 六段诊断：DNS / 端口 / 回落 / 外部 443 / 证书 / 服务 |
+| `rs backup` / `rs restore <file>` | 备份与恢复 |
 | `rs upgrade` | 升级 Xray 内核（先 `run -test` 再重启） |
-| `rs uninstall [--all]` | 卸载，`--all` 连站点/证书/防火墙 |
+| `rs uninstall` | 卸载，交互里可选连站点/证书/防火墙一起清 |
 | `rs self-update` | 重新下载本脚本（下载后先 `bash -n` 再覆盖） |
+
+状态与导出目录：`/usr/local/etc/rs/`（`state.conf` / `clients.conf` / `version.lock` / `export/`），权限 600。
 
 ### 一行流（多文件版 install.sh）
 
@@ -261,6 +278,48 @@ bash install.sh --domain api.example.com --email you@mail.com --no-cert
 # 不动防火墙
 bash install.sh --domain api.example.com --email you@mail.com --no-firewall
 ```
+
+## 主菜单
+
+```
+┌─ rs 2.0.0 · REALITY 偷自己 ─────────────────
+│ 节点管理   1) 安装/重装节点   2) 添加客户端
+│            3) 链接与订阅     4) 删除客户端
+│            5) 修改节点       6) 轮换 REALITY 密钥
+│ 服务控制   7) 重启           8) 停止
+│            9) 启动          10) 运行状态
+│           11) 实时日志      12) 定时重启
+│ 配置更新  13) 检查配置      14) 备份
+│           15) 恢复备份      16) 更新脚本
+│           17) 重签证书
+│ 内核管理  18) 安装/更新内核 19) 锁定/切换版本
+│ 进阶      20) 诊断          21) BBR
+│           22) 防火墙        23) 卸载
+└───────────────────────────────────────────
+```
+
+| 分类 | 编号 | 功能 | 落到哪里 |
+|---|---:|---|---|
+| 节点管理 | 1 | 安装 / 重装节点（raw 或 xhttp） | `/usr/local/etc/xray/config.json`、Nginx vhost |
+| | 2 | 添加客户端（多 UUID） | `state.conf` + `clients.conf` + 配置重载 |
+| | 3 | 链接与订阅 | `/usr/local/etc/rs/export/` |
+| | 4 | 删除客户端 | 配置重载，至少保留一个 |
+| | 5 | 修改节点（域名 / 网络 / 回环端口 / 连接地址） | 改域名会触发重签证书 |
+| | 6 | 轮换 REALITY 密钥 | 旧链接全部作废，pubkey 立即更新 |
+| 服务控制 | 7-9 | 重启 / 停止 / 启动 | `xray` service |
+| | 10 | 运行状态（含端口、内核版本、证书余期） | — |
+| | 11 | 实时日志 | journald 或 `/var/log/xray/` |
+| | 12 | 定时重启 | `/etc/cron.d/rs-xray` 或 `/etc/crontabs/root` |
+| 配置更新 | 13 | 检查配置 | `xray run -test` + `nginx -t` |
+| | 14-15 | 备份 / 恢复 | `/root/rs-backup-<时间>.tar.gz` |
+| | 16 | 更新脚本自身 | 覆盖 `/usr/local/bin/rs`，先 `bash -n` |
+| | 17 | 重签证书 | acme.sh |
+| 内核管理 | 18 | 安装 / 更新内核 | `version.lock` 存在时按锁定版本装 |
+| | 19 | 锁定 / 切换版本 | `version.lock`，`unlock` 解锁 |
+| 进阶 | 20 | 诊断 | 六段检查 |
+| | 21 | BBR | `/etc/sysctl.conf` |
+| | 22 | 防火墙 | nftables / ufw / firewalld |
+| | 23 | 卸载 | 可选连站点、证书、状态目录、防火墙一起清 |
 
 ## 参数
 
@@ -327,9 +386,11 @@ vless://<UUID>@<服务器IP>:443?encryption=none&security=reality&sni=api.exampl
 
 ```
 reality-selfsteal/
-├── rs                               # 单文件自包含安装器（推荐，模板全内嵌）
-├── install.sh                       # 主安装脚本（7 步，读 conf/ 模板）
-├── uninstall.sh                     # 卸载（--all / --purge）
+├── rs                               # 单文件节点管理器 v2（23 项菜单，模板全内嵌）
+├── install.sh                       # 多文件版安装脚本（读 conf/ 模板）
+├── uninstall.sh                     # 多文件版卸载（--all / --purge）
+├── scripts/
+│   └── lint.sh                      # 本地自检：语法 / shellcheck / jq / 渲染 / 行尾
 ├── lib/
 │   └── common.sh                    # 发行版探测 / 包管理 / 服务 / 防火墙 / 模板渲染
 ├── conf/
@@ -344,19 +405,60 @@ reality-selfsteal/
 └── README.md
 ```
 
-## 多用户与流量统计
+## 多客户端与订阅导出
 
-面板没了，这两件事手动做：
+面板没了，这些事交给 `rs` 的菜单：
 
-**加用户**——在 `config.json` 的 `clients` 数组里追加一项，`xray run -test` 通过后重启：
+**加客户端**（菜单 `2` 或命令行）：
 
-```json
-{ "id": "第二个UUID", "flow": "xtls-rprx-vision", "email": "user2@api.example.com" }
+```sh
+rs add-client --email user2
+# 输出：
+# vless://<UUID>@<IP>:443?...&sni=api.example.com&...&pbk=<公钥>&sid=<shortId>#api-example-com-xxxxxx
 ```
 
-`xray uuid` 生成 UUID。`xhttp` 模式去掉 `flow` 字段。
+`rs` 会往 `clients.conf` 追加一行、重渲染 `config.json`、`run -test` 通过后重启 xray，只断一次连接。
 
-**流量统计**——打开 Xray 自带 Stats API：
+**看全部链接**（菜单 `3`）：
+
+```sh
+rs info      # 终端里列出每个客户端一条链接
+rs export    # 同时写三个文件
+```
+
+```
+/usr/local/etc/rs/export/links.txt     明文链接，一行一条
+/usr/local/etc/rs/export/sub.txt       base64 订阅（可直接当订阅地址内容）
+/usr/local/etc/rs/export/clash.yaml    Mihomo/Clash Meta，含 reality-opts
+```
+
+`clash.yaml` 片段（每加一个客户端自动多一条 proxy）：
+
+```yaml
+proxies:
+  - name: "api.example.com-4f1c2a"
+    type: vless
+    server: 1.2.3.4
+    port: 443
+    uuid: 4f1c2a9e-...
+    network: tcp
+    tls: true
+    udp: true
+    servername: api.example.com
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: Qk3x...
+      short-id: "0123456789abcdef"
+    flow: xtls-rprx-vision
+```
+
+`xhttp` 模式下 `network: xhttp`、`xhttp-opts.path`，且不带 `flow`。
+
+**删客户端**（菜单 `4`）：列出编号，选一个删掉，至少要留一个。
+
+**改节点**（菜单 `5`）：域名 / 网络 / 回环端口 / 客户端连接地址；换网络时脚本自动同步每个客户端的 `flow`，换域名会删掉旧证书目录并触发重签。
+
+**流量统计**（`rs` 默认不带面板，需要就自己开 Stats API）：
 
 ```json
 "api": { "tag": "api", "services": [ "StatsService" ] },
@@ -364,7 +466,7 @@ reality-selfsteal/
 "policy": { "levels": { "0": { "statsUserUplink": true, "statsUserDownlink": true } } }
 ```
 
-再加一个只监听回环的 inbound 和一条路由：
+再加一个只监听回环的 inbound 与一条路由：
 
 ```json
 { "listen": "127.0.0.1", "port": 10085, "protocol": "dokodemo-door", "tag": "api",
@@ -375,13 +477,10 @@ reality-selfsteal/
 { "type": "field", "inboundTag": [ "api" ], "outboundTag": "api" }
 ```
 
-查询：
-
 ```sh
 xray api statsquery --server=127.0.0.1:10085 -pattern ""
 xray api statsonline --server=127.0.0.1:10085
 ```
-
 ## 常见问题
 
 | 现象 | 原因 | 处理 |
@@ -398,6 +497,15 @@ xray api statsonline --server=127.0.0.1:10085
 
 ## 卸载
 
+用 `rs`（推荐）：
+
+```sh
+rs             # 菜单 [23] 卸载；会问要不要连站点、证书、状态目录、防火墙一起清
+rs uninstall
+```
+
+用多文件版：
+
 ```sh
 # 只删节点，Nginx 与站点保留
 bash uninstall.sh --domain api.example.com
@@ -409,6 +517,22 @@ bash uninstall.sh --domain api.example.com --all
 bash uninstall.sh --domain api.example.com --purge
 ```
 
+## 二次开发说明
+
+本项目的菜单分层、状态文件组织、导出与诊断的划分方式，改写自
+[0xdabiaoge/singbox-lite](https://github.com/0xdabiaoge/singbox-lite)（sing-box + Xray 多协议管理脚本，纯 Shell）。
+
+| 部分 | 来源 |
+|---|---|
+| 单文件 `rs` 的主菜单分类（节点 / 服务 / 配置 / 内核 / 进阶）与编号式交互 | 参照 singbox-lite 改写的结构 |
+| 状态与导出的落地方式（状态目录、链接清单、订阅、Clash 配置） | 参照 singbox-lite 的 `clash.yaml` 与元数据思路，按 REALITY 单协议重新实现 |
+| 发行版 / init / 防火墙三套分支的判断方式 | 参照 singbox-lite 的多发行版适配思路改写 |
+| REALITY 偷自己（dest 指向本机 Nginx）、回落链路、`serverNames` 与证书对齐、raw/xhttp 双传输 | 本项目自有实现 |
+| Xray 配置渲染、密钥轮换、内核锁定、六段诊断、备份恢复 | 本项目自有实现 |
+
+上游仓库当前未附带 `LICENSE` 文件；本仓库的 MIT 仅覆盖本项目自身代码，上游代码的再分发与商用请先行联系其作者。
+本项目的差异点：只做 VLESS + REALITY 一条线（不引入 sing-box、不做多协议、不做 Argo 隧道、不做端口转发），
+把「偷自己」这一种伪装做到配置、证书、诊断全链路闭环。
 ## 声明
 
 ```
@@ -426,6 +550,7 @@ bash uninstall.sh --domain api.example.com --purge
 - [XTLS/Xray-core](https://github.com/XTLS/Xray-core) —— VLESS / REALITY / XHTTP / Vision
 - [XTLS/REALITY](https://github.com/XTLS/REALITY) —— REALITY 协议与设计说明
 - [acmesh-official/acme.sh](https://github.com/acmesh-official/acme.sh) —— 证书自动化
+- [0xdabiaoge/singbox-lite](https://github.com/0xdabiaoge/singbox-lite) —— 本项目菜单与状态管理的改写来源
 - [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) —— 面板方案的参照实现
 
 ## 参考

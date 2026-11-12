@@ -83,6 +83,9 @@ if [ -n "${marker:-}" ]; then
     export CONF_FILE=/usr/local/etc/xray/config.json
     export UUID=11111111-1111-1111-1111-111111111111 PRIV=PRIVATEKEY
     export SHORTID=0123456789abcdef XPATH=/abcdef123456
+    export CLIENTS_FILE="$tmpd/clients.conf"
+    printf '%s\n' '11111111-1111-1111-1111-111111111111|user1@example.com|xtls-rprx-vision|2026-01-01' \
+                  '22222222-2222-2222-2222-222222222222|user2@example.com|xtls-rprx-vision|2026-01-01' > "$CLIENTS_FILE"
     export NETWORK=raw;   tpl_xray > "$tmpd/raw.json"
     export NETWORK=xhttp; tpl_xray > "$tmpd/xhttp.json"
     tpl_nginx "" "    http2 on;"   > "$tmpd/site-new.conf"
@@ -101,6 +104,11 @@ if [ -n "${marker:-}" ]; then
     pass "flow 只在 raw 出现"
   else
     bad "flow 与 network 不匹配"
+  fi
+  if grep -c '"id":' "$tmpd/raw.json" | grep -qx 2; then
+    pass "两个客户端都进配置"
+  else
+    bad "多客户端渲染异常"
   fi
   if command -v jq >/dev/null 2>&1; then
     jq -e . "$tmpd/raw.json"   >/dev/null && pass "raw.json 合法 JSON"   || bad "raw.json 非法"
