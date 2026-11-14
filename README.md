@@ -3,7 +3,7 @@
 > 纯手写 **VLESS + REALITY「偷自己」**：`dest` 指向本机 Nginx，域名、证书、站点全在同一台机器上。
 > 不要宝塔，不要 3x-ui，不要 aaPanel / 1Panel。三条命令装完。
 
-[![lint](https://github.com/lrexionclub/reality-selfsteal/actions/workflows/lint.yml/badge.svg)](https://github.com/lrexionclub/reality-selfsteal/actions/workflows/lint.yml)
+[![lint](https://github.com/lrexion/reality-selfsteal/actions/workflows/lint.yml/badge.svg)](https://github.com/lrexion/reality-selfsteal/actions/workflows/lint.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Alpine%20%7C%20Debian%20%7C%20Ubuntu%20%7C%20RHEL-informational)](#支持矩阵)
 
@@ -200,7 +200,7 @@ CF Token  （留空，回车）
 
 ```sh
 apk add --no-cache bash git curl
-git clone https://github.com/lrexionclub/reality-selfsteal.git
+git clone https://github.com/lrexion/reality-selfsteal.git
 cd reality-selfsteal
 bash install.sh --domain api.example.com --email you@mail.com
 ```
@@ -209,7 +209,7 @@ bash install.sh --domain api.example.com --email you@mail.com
 
 ```sh
 apt update && apt install -y git curl
-git clone https://github.com/lrexionclub/reality-selfsteal.git
+git clone https://github.com/lrexion/reality-selfsteal.git
 cd reality-selfsteal
 bash install.sh --domain api.example.com --email you@mail.com
 ```
@@ -217,8 +217,8 @@ bash install.sh --domain api.example.com --email you@mail.com
 ### 单文件一键（推荐：`rs`）
 
 ```sh
-(curl -LfsS https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
-   -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/rs \
+(curl -LfsS https://raw.githubusercontent.com/lrexion/reality-selfsteal/main/rs \
+   -o /usr/local/bin/rs || wget -q https://raw.githubusercontent.com/lrexion/reality-selfsteal/main/rs \
    -O /usr/local/bin/rs) && chmod +x /usr/local/bin/rs && rs
 ```
 
@@ -252,7 +252,7 @@ rs
 ### 一行流（多文件版 install.sh）
 
 ```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/lrexionclub/reality-selfsteal/main/install.sh) \
+bash <(curl -fsSL https://raw.githubusercontent.com/lrexion/reality-selfsteal/main/install.sh) \
   --domain api.example.com --email you@mail.com
 ```
 
